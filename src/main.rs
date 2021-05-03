@@ -36,7 +36,6 @@ fn main() {
         }
     }
 
-
     if !mapped_args.contains_key("t") && !mapped_args.contains_key("re") {
         panic!("Unable to continue, no text to search for is present!");
     }
@@ -85,31 +84,34 @@ fn do_search(args: Args) {
         let current_path = dir_paths
             .pop_front()
             .expect("Unable to pop path from deque");
-        match fs::read_dir(&current_path) {
-            Ok(dir) => {
-                for sub_dir in dir {
-                    let new_path = sub_dir.unwrap().path().to_str().unwrap().to_owned();
-                    dir_paths.push_back(new_path);
-                }
-            }
-            Err(_) => match fs::read_to_string(&current_path) {
-                Ok(string) => {
-                    let mut line_number = 0;
-                    for line in string.split('\n') {
-                        line_number += 1;
 
-                        match &args.search_query {
-                            TextSearch::Text(search_text) => {
-                                do_text_search(line, search_text, &line_number, &current_path);
-                            }
-                            TextSearch::Expression(regex) => {
-                                do_regex_search(line, regex, &line_number, &current_path);
+        if matches!(fs::metadata(&current_path), Ok(val) if val.is_dir() || val.is_file()) {
+            match fs::read_dir(&current_path) {
+                Ok(dir) => {
+                    for sub_dir in dir {
+                        let new_path = sub_dir.unwrap().path().to_str().unwrap().to_owned();
+                        dir_paths.push_back(new_path);
+                    }
+                }
+                Err(_) => match fs::read_to_string(&current_path) {
+                    Ok(string) => {
+                        let mut line_number = 0;
+                        for line in string.split('\n') {
+                            line_number += 1;
+
+                            match &args.search_query {
+                                TextSearch::Text(search_text) => {
+                                    do_text_search(line, search_text, &line_number, &current_path);
+                                }
+                                TextSearch::Expression(regex) => {
+                                    do_regex_search(line, regex, &line_number, &current_path);
+                                }
                             }
                         }
                     }
-                }
-                Err(_) => {}
-            },
+                    Err(_) => {}
+                },
+            }
         }
     }
 }
