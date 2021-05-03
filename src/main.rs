@@ -73,10 +73,11 @@ fn main() {
         path: search_path,
         search_query,
     };
-    do_search(args);
+
+    do_dir_search(args);
 }
 
-fn do_search(args: Args) {
+fn do_dir_search(args: Args) {
     let mut dir_paths: VecDeque<String> = VecDeque::new();
     dir_paths.push_front(args.path.to_owned());
 
