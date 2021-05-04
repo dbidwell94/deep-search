@@ -132,7 +132,7 @@ fn do_dir_search(args: Args) {
             gitignore_parent_path = Some(current_path.to_owned());
         }
 
-        if matches!(fs::metadata(&current_path.path), Ok(val) if val.is_dir() || val.is_file() && !val.permissions().readonly())
+        if matches!(fs::metadata(&current_path.path), Ok(val) if val.is_dir() || val.is_file())
             && args
                 .exclude
                 .as_ref()

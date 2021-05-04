@@ -8,7 +8,7 @@ license=("Apache-2.0")
 arch=("x86_64")
 provides=("deep-search")
 source=("https://github.com/dbidwell94/deep-search/releases/download/v$pkgver/deep-search-$pkgver-x86_64.tar.gz")
-sha256sums=("908da7786e92c39b8a414bfe6d84c8d03465d7bb2654b1963530591e68efca82")
+sha256sums=("0ed35817a2f9d7358293ba9460dc0e02ac67a24a29e5e9807fe4440c2b97f696")
 
 package() {
     install -Dm755 deep-search -t "$pkgdir/usr/bin/"
