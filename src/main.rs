@@ -114,6 +114,8 @@ fn do_dir_search(args: Args) {
 
     let mut gitignore_parent_path: Option<DirWithIgnore> = None;
 
+    let mut line_number: u32;
+
     while dir_paths.len() > 0 {
         let current_path = dir_paths
             .pop_front()
@@ -155,7 +157,7 @@ fn do_dir_search(args: Args) {
                 }
                 Err(_) => match fs::read_to_string(&current_path.path) {
                     Ok(string) => {
-                        let mut line_number = 0;
+                        line_number = 0;
                         for line in string.split('\n') {
                             line_number += 1;
 
@@ -181,13 +183,13 @@ fn do_dir_search(args: Args) {
     }
 }
 
-fn do_text_search(line_to_search: &str, text_to_search_for: &str, line_number: &i32, path: &str) {
+fn do_text_search(line_to_search: &str, text_to_search_for: &str, line_number: &u32, path: &str) {
     if line_to_search.contains(text_to_search_for) {
         println!("line: {:?}, path: {:?}", line_number, path);
     }
 }
 
-fn do_regex_search(line_to_search: &str, regex: &Regex, line_number: &i32, path: &str) {
+fn do_regex_search(line_to_search: &str, regex: &Regex, line_number: &u32, path: &str) {
     if regex.is_match(line_to_search) {
         println!("line: {:?}, path: {:?}", line_number, path);
     }
