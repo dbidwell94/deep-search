@@ -1,22 +1,22 @@
 use regex::Regex;
+use std::collections::{HashMap, VecDeque};
 use std::env;
 use std::fs;
-use std::{
-    borrow::Borrow,
-    collections::{HashMap, VecDeque},
-};
 
+#[derive(Debug)]
 enum TextSearch {
     Text(String),
     Expression(Regex),
 }
 
+#[derive(Debug)]
 struct Args {
     path: String,
     search_query: TextSearch,
     exclude: Option<Regex>,
 }
 
+#[derive(Debug, Clone)]
 struct DirWithIgnore {
     path: String,
     ignore: Option<Regex>,
@@ -112,28 +112,42 @@ fn do_dir_search(args: Args) {
         ignore: check_dir_for_gitignore(&args.path),
     });
 
+    let mut gitignore_parent_path: Option<DirWithIgnore> = None;
+
     while dir_paths.len() > 0 {
         let current_path = dir_paths
             .pop_front()
             .expect("Unable to pop path from deque");
 
+        if gitignore_parent_path.is_none() && current_path.ignore.is_some() {
+            gitignore_parent_path = Some(current_path.to_owned());
+        } else if gitignore_parent_path.is_some()
+            && current_path.ignore.is_some()
+            && !gitignore_parent_path
+                .as_ref()
+                .unwrap()
+                .path
+                .contains(&current_path.path)
+        {
+            gitignore_parent_path = Some(current_path.to_owned());
+        }
+
         if matches!(fs::metadata(&current_path.path), Ok(val) if val.is_dir() || val.is_file() && !val.permissions().readonly())
             && args
                 .exclude
-                .borrow()
                 .as_ref()
                 .map_or(true, |re| !re.is_match(&current_path.path))
-            && current_path
-                .ignore
-                .borrow()
-                .as_ref()
-                .map_or(true, |re| !re.is_match(&current_path.path))
+            && gitignore_parent_path.as_ref().map_or(true, |dir| {
+                dir.ignore
+                    .as_ref()
+                    .map_or(true, |re| !re.is_match(&current_path.path))
+            })
         {
             match fs::read_dir(&current_path.path) {
                 Ok(dir) => {
                     for sub_dir in dir {
                         let new_path = sub_dir.unwrap().path().to_str().unwrap().to_owned();
-                        dir_paths.push_back(DirWithIgnore {
+                        dir_paths.push_front(DirWithIgnore {
                             ignore: check_dir_for_gitignore(&new_path),
                             path: new_path,
                         });
@@ -164,8 +178,6 @@ fn do_dir_search(args: Args) {
                 },
             }
         }
-    
-        std::mem::forget(current_path);
     }
 }
 
@@ -200,12 +212,26 @@ fn parse_gitignore(gitignore_path: &str) -> Regex {
 
     let split_gitignore = gitignore_string
         .split('\n')
-        .filter(|s| !s.trim().starts_with('#'))
-        .map(|s| format!("{}", s.replace("|", "").replace("*", "")))
+        .map(|s| {
+            format!(
+                "{}",
+                s.replace("|", r"\|")
+                    .replace("*", "")
+                    .replace(".", r"\.")
+                    .replace("^", r"\^")
+                    .replace("(", r"\(")
+                    .replace(")", r"\)")
+                    .replace("/", "")
+                    .trim()
+            )
+        })
+        .filter(|s| !s.starts_with('#') && s.len() > 0)
         .collect::<Vec<String>>()
         .join("|");
 
-    regex::RegexBuilder::new(&format!("({})", split_gitignore))
+    let re = regex::RegexBuilder::new(&format!("({})", split_gitignore))
         .build()
-        .unwrap()
+        .unwrap();
+
+    return re;
 }
